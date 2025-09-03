@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Support System Warning Badges
 // @namespace    https://github.com/danmansfield/
-// @version      2.1.0
+// @version      2.1.1
 // @description  Shows warning badges for Blocks and Happy Telecom top level entries
 // @author       Dan Mansfield
 // @match        https://support.bleckfield.com/*
@@ -15,11 +15,26 @@
     'use strict';
 
     let hasAddedWarning = false;
+    let lastCheckedURL = '';
 
     // Function to create and insert the warning message box
     function createRedMessageBox() {
-        // Prevent duplicate warnings
+        // Reset if URL changed (navigated to different ticket)
+        if (window.location.href !== lastCheckedURL) {
+            hasAddedWarning = false;
+            lastCheckedURL = window.location.href;
+            // Remove old warning if exists
+            const oldWarning = document.querySelector('.tampermonkey-red-message');
+            if (oldWarning) oldWarning.remove();
+        }
+        
+        // Prevent duplicate warnings on same page
         if (hasAddedWarning) return;
+        
+        // Check if page is still loading
+        if (document.querySelector('.application-loader')) {
+            return; // Wait for page to finish loading
+        }
         
         // Check if the label exists
         const label = document.querySelector('label[for="input-field-for-toplevel_name"]');
@@ -94,34 +109,33 @@
         }
     }
 
-    // Check periodically
-    const checkInterval = setInterval(function() {
-        // Stop if loader is still visible
-        if (document.querySelector('.application-loader')) {
-            return;
-        }
-        
+    // Check every 500ms
+    setInterval(function() {
         createRedMessageBox();
-        
-        // Stop checking after we've added the warning
-        if (hasAddedWarning) {
-            clearInterval(checkInterval);
-            
-            // Continue monitoring for page changes
-            const observer = new MutationObserver(function() {
-                createRedMessageBox();
-            });
-            
-            observer.observe(document.body, {
-                childList: true,
-                subtree: true
-            });
-        }
     }, 500);
     
-    // Stop checking after 30 seconds
-    setTimeout(function() {
-        clearInterval(checkInterval);
-    }, 30000);
+    // Also monitor for DOM changes
+    const observer = new MutationObserver(function() {
+        createRedMessageBox();
+    });
+    
+    // Start observing when body is available
+    if (document.body) {
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    } else {
+        // Wait for body to exist
+        const bodyWait = setInterval(function() {
+            if (document.body) {
+                clearInterval(bodyWait);
+                observer.observe(document.body, {
+                    childList: true,
+                    subtree: true
+                });
+            }
+        }, 100);
+    }
 
 })();
