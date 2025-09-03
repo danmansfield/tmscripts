@@ -1,8 +1,8 @@
-# Bleckfield Support Userscripts
+# Tampermonkey Scripts
 
 ## Blocks Top Level Warning Script
 
-This script adds a warning badge when viewing "Blocks" Top Level entries in the support system.
+Adds a visual warning badge when viewing "Blocks" Top Level entries in the Bleckfield support system.
 
 ### Installation
 
@@ -11,22 +11,26 @@ This script adds a warning badge when viewing "Blocks" Top Level entries in the 
    - [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/tampermonkey/iikmkjmpaadaobahmlepeloendndfphd)
 
 2. **Install the Script**
-   - Click here: [Install Blocks Warning Script](https://raw.githubusercontent.com/bleckfield/userscripts/main/blocks-warning.user.js)
+   - **[Click here to install](https://raw.githubusercontent.com/danmansfield/tmscripts/main/warning.user.js)**
    - Tampermonkey will open automatically
-   - Click "Install" button
+   - Click the "Install" button
 
 3. **Verify Installation**
    - Navigate to https://support.bleckfield.com
-   - Look for tickets with "Blocks" Top Level
-   - You should see a small red warning badge
+   - Open a ticket with "Blocks" as Top Level
+   - You should see a small red warning badge in the top-right
 
-### Updates
+### Auto-Updates
 
-The script will automatically update when we push changes. You can manually check for updates in Tampermonkey:
-- Click Tampermonkey icon → Dashboard → Select script → Check for updates
+The script automatically checks for updates daily. To manually check:
+- Tampermonkey icon → Dashboard → Select script → Check for updates
 
-### Current Version
-- Version 2.0.0 - Initial release
+### Version History
+- **2.0.0** (2024) - Initial release with auto-update support
 
-### Changelog
-- 2.0.0: Initial release with automatic page detection# tmscripts
+### Troubleshooting
+
+If the warning doesn't appear:
+1. Check Tampermonkey is enabled (icon should not be greyed out)
+2. Refresh the page (F5)
+3. Check the console for debug messages (F12)
