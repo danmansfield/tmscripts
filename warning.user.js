@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Support System Warning Badges
 // @namespace    https://github.com/danmansfield/
-// @version      2.1.2
+// @version      2.1.3
 // @description  Shows warning badges for Blocks and Happy Telecom top level entries
 // @author       Dan Mansfield
 // @match        https://support.bleckfield.com/*
