@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Support System Warning Badges
 // @namespace    https://github.com/danmansfield/
-// @version      2.1.3
-// @description  Shows warning badges for Blocks and Happy Telecom top level entries
+// @version      2.3.0
+// @description  Shows warning badges for Blocks and Happy Telecom top level entries, highlights prepay for Blocks
 // @author       Dan Mansfield
 // @match        https://support.bleckfield.com/*
 // @updateURL    https://raw.githubusercontent.com/danmansfield/tmscripts/main/warning.user.js
@@ -19,32 +19,62 @@
 
     // Function to highlight the Pre-pay balance section
     function highlightPrepayBalance() {
-        // Find the Pre-pay balance label
-        const prepayLabel = document.querySelector('label[for="input-field-for-prepay_balance"]');
+        // Keep trying until we find it or give up
+        let attempts = 0;
+        const maxAttempts = 30; // Try for 15 seconds
         
-        if (prepayLabel) {
-            // Find the parent row container
-            const prepayRow = prepayLabel.closest('.row');
+        const tryHighlight = setInterval(function() {
+            attempts++;
             
-            if (prepayRow && !prepayRow.classList.contains('prepay-highlighted')) {
-                // Add a class to prevent re-highlighting
-                prepayRow.classList.add('prepay-highlighted');
+            // Find the Pre-pay balance label
+            const prepayLabel = document.querySelector('label[for="input-field-for-prepay_balance"]');
+            
+            if (prepayLabel) {
+                // Find the parent row container
+                const prepayRow = prepayLabel.closest('.row');
                 
-                // Apply highlighting styles
-                prepayRow.style.backgroundColor = '#ffe6e6';
-                prepayRow.style.border = '2px solid #dc3545';
-                prepayRow.style.borderRadius = '5px';
-                prepayRow.style.padding = '5px';
-                prepayRow.style.marginTop = '5px';
-                prepayRow.style.marginBottom = '5px';
-                
-                // Also make the label bold to draw attention
-                prepayLabel.style.fontWeight = 'bold';
-                prepayLabel.style.color = '#dc3545';
-                
-                console.log('[DEBUG] Pre-pay balance section highlighted');
+                if (prepayRow && !prepayRow.classList.contains('prepay-highlighted')) {
+                    // Add a class to prevent re-highlighting
+                    prepayRow.classList.add('prepay-highlighted');
+                    
+                    // Apply highlighting styles with !important to override
+                    prepayRow.setAttribute('style', `
+                        background-color: #ffe6e6 !important;
+                        border: 2px solid #dc3545 !important;
+                        border-radius: 5px !important;
+                        padding: 5px !important;
+                        margin-top: 5px !important;
+                        margin-bottom: 5px !important;
+                    `);
+                    
+                    // Also make the label bold to draw attention
+                    prepayLabel.setAttribute('style', `
+                        font-weight: bold !important;
+                        color: #dc3545 !important;
+                    `);
+                    
+                    // Find ALL value divs within this row and make text black
+                    const allValueDivs = prepayRow.querySelectorAll('.read-value, .noedit-value');
+                    allValueDivs.forEach(function(div) {
+                        div.style.cssText += 'color: #000000 !important; font-weight: bold !important;';
+                        // Also apply to any child elements
+                        const children = div.querySelectorAll('*');
+                        children.forEach(function(child) {
+                            child.style.cssText += 'color: #000000 !important;';
+                        });
+                    });
+                    
+                    console.log('[DEBUG] Pre-pay balance section highlighted');
+                    clearInterval(tryHighlight);
+                }
             }
-        }
+            
+            // Stop trying after max attempts
+            if (attempts >= maxAttempts) {
+                console.log('[DEBUG] Could not find Pre-pay balance section after ' + maxAttempts + ' attempts');
+                clearInterval(tryHighlight);
+            }
+        }, 500);
     }
 
     // Function to create and insert the warning message box
