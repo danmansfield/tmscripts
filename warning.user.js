@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Support System Warning Badges
 // @namespace    https://github.com/danmansfield/
-// @version      2.4.0
+// @version      2.5.0
 // @description  Shows warning badges for Blocks and Happy Telecom top level entries, Portman Care customer group, and highlights prepay for Blocks
 // @author       Dan Mansfield
 // @match        https://support.bleckfield.com/*
@@ -14,7 +14,7 @@
 (function() {
     'use strict';
 
-    let hasAddedWarning = false;
+    let hasAddedWarnings = false;
     let lastCheckedURL = '';
 
     // Function to highlight the Pre-pay balance section
@@ -77,15 +77,15 @@
         }, 500);
     }
 
-    // Function to create and insert the warning message box
-    function createRedMessageBox() {
+    // Function to create and insert the warning message boxes
+    function createWarningMessages() {
         // Reset if URL changed (navigated to different ticket)
         if (window.location.href !== lastCheckedURL) {
-            hasAddedWarning = false;
+            hasAddedWarnings = false;
             lastCheckedURL = window.location.href;
-            // Remove old warning if exists
-            const oldWarning = document.querySelector('.tampermonkey-red-message');
-            if (oldWarning) oldWarning.remove();
+            // Remove old warnings if exist
+            const oldWarnings = document.querySelectorAll('.tampermonkey-warning-message');
+            oldWarnings.forEach(warning => warning.remove());
             // Remove old highlighting
             const oldHighlight = document.querySelector('.prepay-highlighted');
             if (oldHighlight) {
@@ -95,18 +95,17 @@
         }
         
         // Prevent duplicate warnings on same page
-        if (hasAddedWarning) return;
+        if (hasAddedWarnings) return;
         
         // Check if page is still loading
         if (document.querySelector('.application-loader')) {
             return; // Wait for page to finish loading
         }
         
-        let warningText = '';
-        let bgColor = '#dc3545'; // Default red
+        const warnings = [];
         let shouldHighlightPrepay = false;
         
-        // First check for Top Level conditions (existing logic)
+        // Check for Top Level conditions
         const topLevelLabel = document.querySelector('label[for="input-field-for-toplevel_name"]');
         
         if (topLevelLabel && topLevelLabel.textContent.trim() === 'Top Level') {
@@ -119,96 +118,113 @@
                 if (readValueDiv) {
                     const titleValue = readValueDiv.getAttribute('title');
                     
-                    // Determine which warning to show
+                    // Check for Blocks
                     if (titleValue === 'Blocks') {
-                        warningText = '⚠️ Blocks Top Level!';
+                        warnings.push({
+                            text: '⚠️ Blocks Top Level!',
+                            bgColor: '#dc3545' // Red
+                        });
                         shouldHighlightPrepay = true;
-                    } else if (titleValue && titleValue.startsWith('Happy Telecom')) {
-                        warningText = '🔒 No email passwords without approval!';
-                        bgColor = '#ff8c00'; // Orange for Happy Telecom
+                    } 
+                    // Check for Happy Telecom
+                    else if (titleValue && titleValue.startsWith('Happy Telecom')) {
+                        warnings.push({
+                            text: '🔒 No email passwords without approval!',
+                            bgColor: '#ff8c00' // Orange
+                        });
                     }
                 }
             }
         }
         
-        // Check for Portman Care customer group (new condition)
-        if (!warningText) { // Only check if we haven't found a warning yet
-            const customerGroupLabel = document.querySelector('label[for="input-field-for-customfield_222e374e546-f7ea-4fef-b528-39a4798f118f"]');
+        // Check for Portman Care customer group
+        const customerGroupLabel = document.querySelector('label[for="input-field-for-customfield_222e374e546-f7ea-4fef-b528-39a4798f118f"]');
+        
+        if (customerGroupLabel && customerGroupLabel.textContent.trim() === 'Customer Group') {
+            const customerGroupContainer = customerGroupLabel.closest('.col-md-12');
             
-            if (customerGroupLabel && customerGroupLabel.textContent.trim() === 'Customer Group') {
-                const customerGroupContainer = customerGroupLabel.closest('.col-md-12');
+            if (customerGroupContainer) {
+                const customerGroupValue = customerGroupContainer.querySelector('.read-value[title="Portman Care"]');
                 
-                if (customerGroupContainer) {
-                    const customerGroupValue = customerGroupContainer.querySelector('.read-value[title="Portman Care"]');
-                    
-                    if (customerGroupValue) {
-                        warningText = '⚠️ Manager Approval Required!';
-                        shouldHighlightPrepay = true; // Same behavior as Blocks
-                    }
+                if (customerGroupValue) {
+                    warnings.push({
+                        text: '⚠️ Manager Approval Required!',
+                        bgColor: '#dc3545' // Red
+                    });
                 }
             }
         }
         
-        // Apply highlighting if needed
+        // Apply highlighting if needed (only for Blocks)
         if (shouldHighlightPrepay) {
             highlightPrepayBalance();
         }
         
-        // Only proceed if we have a warning to show
-        if (warningText) {
-            // Find the profile-details div to insert our warning
+        // Add all warning messages that were found
+        if (warnings.length > 0) {
+            // Find the profile-details div to insert our warnings
             const profileDetails = document.querySelector('.profile-details');
             
             if (profileDetails) {
-                // Check if we already added the message box
-                if (!document.querySelector('.tampermonkey-red-message')) {
-                    // Find profile-title
-                    const profileTitle = profileDetails.querySelector('.profile-title');
-                    if (!profileTitle) return;
+                // Find profile-title
+                const profileTitle = profileDetails.querySelector('.profile-title');
+                if (!profileTitle) return;
+                
+                // Make profile-title position relative
+                profileTitle.style.position = 'relative';
+                
+                // Add each warning as a separate badge
+                warnings.forEach(function(warning, index) {
+                    // Check if this specific warning already exists
+                    const existingWarning = Array.from(document.querySelectorAll('.tampermonkey-warning-message'))
+                        .find(el => el.textContent === warning.text);
                     
-                    // Make profile-title position relative
-                    profileTitle.style.position = 'relative';
-                    
-                    // Create the warning message box
-                    const messageBox = document.createElement('span');
-                    messageBox.className = 'tampermonkey-red-message';
-                    messageBox.textContent = warningText;
-                    
-                    // Apply all styles directly with !important to override site CSS
-                    messageBox.setAttribute('style', `
-                        background-color: ${bgColor} !important;
-                        color: white !important;
-                        padding: 3px 8px !important;
-                        border-radius: 3px !important;
-                        font-weight: bold !important;
-                        font-size: 11px !important;
-                        border: 1px solid #c82333 !important;
-                        position: absolute !important;
-                        top: 0 !important;
-                        right: 0 !important;
-                        z-index: 1000 !important;
-                        white-space: nowrap !important;
-                        display: inline-block !important;
-                        line-height: normal !important;
-                    `);
-                    
-                    // Append the message
-                    profileTitle.appendChild(messageBox);
-                    hasAddedWarning = true;
-                    console.log('[DEBUG] Warning badge added:', warningText);
-                }
+                    if (!existingWarning) {
+                        // Create the warning message box
+                        const messageBox = document.createElement('span');
+                        messageBox.className = 'tampermonkey-warning-message';
+                        messageBox.textContent = warning.text;
+                        
+                        // Calculate position - stack them vertically if multiple
+                        const topPosition = index * 20; // 20px spacing between badges
+                        
+                        // Apply all styles directly with !important to override site CSS
+                        messageBox.setAttribute('style', `
+                            background-color: ${warning.bgColor} !important;
+                            color: white !important;
+                            padding: 3px 8px !important;
+                            border-radius: 3px !important;
+                            font-weight: bold !important;
+                            font-size: 11px !important;
+                            border: 1px solid #c82333 !important;
+                            position: absolute !important;
+                            top: ${topPosition}px !important;
+                            right: 0 !important;
+                            z-index: ${1000 + index} !important;
+                            white-space: nowrap !important;
+                            display: inline-block !important;
+                            line-height: normal !important;
+                        `);
+                        
+                        // Append the message
+                        profileTitle.appendChild(messageBox);
+                        console.log('[DEBUG] Warning badge added:', warning.text);
+                    }
+                });
+                
+                hasAddedWarnings = true;
             }
         }
     }
 
     // Check every 500ms
     setInterval(function() {
-        createRedMessageBox();
+        createWarningMessages();
     }, 500);
     
     // Also monitor for DOM changes
     const observer = new MutationObserver(function() {
-        createRedMessageBox();
+        createWarningMessages();
     });
     
     // Start observing when body is available
