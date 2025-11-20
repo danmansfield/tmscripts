@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Support System Warning Badges
 // @namespace    https://github.com/danmansfield/
-// @version      2.3.0
-// @description  Shows warning badges for Blocks and Happy Telecom top level entries, highlights prepay for Blocks
+// @version      2.4.0
+// @description  Shows warning badges for Blocks and Happy Telecom top level entries, Portman Care customer group, and highlights prepay for Blocks
 // @author       Dan Mansfield
 // @match        https://support.bleckfield.com/*
 // @updateURL    https://raw.githubusercontent.com/danmansfield/tmscripts/main/warning.user.js
@@ -102,76 +102,100 @@
             return; // Wait for page to finish loading
         }
         
-        // Check if the label exists
-        const label = document.querySelector('label[for="input-field-for-toplevel_name"]');
+        let warningText = '';
+        let bgColor = '#dc3545'; // Default red
+        let shouldHighlightPrepay = false;
         
-        if (label && label.textContent.trim() === 'Top Level') {
+        // First check for Top Level conditions (existing logic)
+        const topLevelLabel = document.querySelector('label[for="input-field-for-toplevel_name"]');
+        
+        if (topLevelLabel && topLevelLabel.textContent.trim() === 'Top Level') {
             // Find the specific div with title
-            const parentContainer = label.closest('.col-md-12');
+            const parentContainer = topLevelLabel.closest('.col-md-12');
             
             if (parentContainer) {
                 const readValueDiv = parentContainer.querySelector('.read-value[title]');
                 
                 if (readValueDiv) {
                     const titleValue = readValueDiv.getAttribute('title');
-                    let warningText = '';
-                    let bgColor = '#dc3545'; // Default red
                     
                     // Determine which warning to show
                     if (titleValue === 'Blocks') {
                         warningText = '⚠️ Blocks Top Level!';
-                        // Call the highlight function for Blocks tickets
-                        highlightPrepayBalance();
+                        shouldHighlightPrepay = true;
                     } else if (titleValue && titleValue.startsWith('Happy Telecom')) {
                         warningText = '🔒 No email passwords without approval!';
                         bgColor = '#ff8c00'; // Orange for Happy Telecom
                     }
+                }
+            }
+        }
+        
+        // Check for Portman Care customer group (new condition)
+        if (!warningText) { // Only check if we haven't found a warning yet
+            const customerGroupLabel = document.querySelector('label[for="input-field-for-customfield_222e374e546-f7ea-4fef-b528-39a4798f118f"]');
+            
+            if (customerGroupLabel && customerGroupLabel.textContent.trim() === 'Customer Group') {
+                const customerGroupContainer = customerGroupLabel.closest('.col-md-12');
+                
+                if (customerGroupContainer) {
+                    const customerGroupValue = customerGroupContainer.querySelector('.read-value[title="Portman Care"]');
                     
-                    // Only proceed if we have a warning to show
-                    if (warningText) {
-                        // Find the profile-details div to insert our warning
-                        const profileDetails = document.querySelector('.profile-details');
-                        
-                        if (profileDetails) {
-                            // Check if we already added the message box
-                            if (!document.querySelector('.tampermonkey-red-message')) {
-                                // Find profile-title
-                                const profileTitle = profileDetails.querySelector('.profile-title');
-                                if (!profileTitle) return;
-                                
-                                // Make profile-title position relative
-                                profileTitle.style.position = 'relative';
-                                
-                                // Create the warning message box
-                                const messageBox = document.createElement('span');
-                                messageBox.className = 'tampermonkey-red-message';
-                                messageBox.textContent = warningText;
-                                
-                                // Apply all styles directly with !important to override site CSS
-                                messageBox.setAttribute('style', `
-                                    background-color: ${bgColor} !important;
-                                    color: white !important;
-                                    padding: 3px 8px !important;
-                                    border-radius: 3px !important;
-                                    font-weight: bold !important;
-                                    font-size: 11px !important;
-                                    border: 1px solid #c82333 !important;
-                                    position: absolute !important;
-                                    top: 0 !important;
-                                    right: 0 !important;
-                                    z-index: 1000 !important;
-                                    white-space: nowrap !important;
-                                    display: inline-block !important;
-                                    line-height: normal !important;
-                                `);
-                                
-                                // Append the message
-                                profileTitle.appendChild(messageBox);
-                                hasAddedWarning = true;
-                                console.log('[DEBUG] Warning badge added:', warningText);
-                            }
-                        }
+                    if (customerGroupValue) {
+                        warningText = '⚠️ Manager Approval Required!';
+                        shouldHighlightPrepay = true; // Same behavior as Blocks
                     }
+                }
+            }
+        }
+        
+        // Apply highlighting if needed
+        if (shouldHighlightPrepay) {
+            highlightPrepayBalance();
+        }
+        
+        // Only proceed if we have a warning to show
+        if (warningText) {
+            // Find the profile-details div to insert our warning
+            const profileDetails = document.querySelector('.profile-details');
+            
+            if (profileDetails) {
+                // Check if we already added the message box
+                if (!document.querySelector('.tampermonkey-red-message')) {
+                    // Find profile-title
+                    const profileTitle = profileDetails.querySelector('.profile-title');
+                    if (!profileTitle) return;
+                    
+                    // Make profile-title position relative
+                    profileTitle.style.position = 'relative';
+                    
+                    // Create the warning message box
+                    const messageBox = document.createElement('span');
+                    messageBox.className = 'tampermonkey-red-message';
+                    messageBox.textContent = warningText;
+                    
+                    // Apply all styles directly with !important to override site CSS
+                    messageBox.setAttribute('style', `
+                        background-color: ${bgColor} !important;
+                        color: white !important;
+                        padding: 3px 8px !important;
+                        border-radius: 3px !important;
+                        font-weight: bold !important;
+                        font-size: 11px !important;
+                        border: 1px solid #c82333 !important;
+                        position: absolute !important;
+                        top: 0 !important;
+                        right: 0 !important;
+                        z-index: 1000 !important;
+                        white-space: nowrap !important;
+                        display: inline-block !important;
+                        line-height: normal !important;
+                    `);
+                    
+                    // Append the message
+                    profileTitle.appendChild(messageBox);
+                    hasAddedWarning = true;
+                    console.log('[DEBUG] Warning badge added:', warningText);
                 }
             }
         }
