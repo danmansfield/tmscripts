@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Support System Warning Badges
 // @namespace    https://github.com/danmansfield/
-// @version      2.5.0
+// @version      2.5.1
 // @description  Shows warning badges for Blocks and Happy Telecom top level entries, Portman Care customer group, and highlights prepay for Blocks
 // @author       Dan Mansfield
 // @match        https://support.bleckfield.com/*
@@ -107,6 +107,7 @@
         
         // Check for Top Level conditions
         const topLevelLabel = document.querySelector('label[for="input-field-for-toplevel_name"]');
+        let topLevelValue = '';
         
         if (topLevelLabel && topLevelLabel.textContent.trim() === 'Top Level') {
             // Find the specific div with title
@@ -116,10 +117,11 @@
                 const readValueDiv = parentContainer.querySelector('.read-value[title]');
                 
                 if (readValueDiv) {
-                    const titleValue = readValueDiv.getAttribute('title');
+                    topLevelValue = readValueDiv.getAttribute('title');
+                    console.log('[DEBUG] Top Level value found:', topLevelValue);
                     
                     // Check for Blocks
-                    if (titleValue === 'Blocks') {
+                    if (topLevelValue === 'Blocks') {
                         warnings.push({
                             text: '⚠️ Blocks Top Level!',
                             bgColor: '#dc3545' // Red
@@ -127,7 +129,7 @@
                         shouldHighlightPrepay = true;
                     } 
                     // Check for Happy Telecom
-                    else if (titleValue && titleValue.startsWith('Happy Telecom')) {
+                    if (topLevelValue && topLevelValue.startsWith('Happy Telecom')) {
                         warnings.push({
                             text: '🔒 No email passwords without approval!',
                             bgColor: '#ff8c00' // Orange
@@ -137,7 +139,7 @@
             }
         }
         
-        // Check for Portman Care customer group
+        // ALWAYS check for Portman Care customer group (independent of top level)
         const customerGroupLabel = document.querySelector('label[for="input-field-for-customfield_222e374e546-f7ea-4fef-b528-39a4798f118f"]');
         
         if (customerGroupLabel && customerGroupLabel.textContent.trim() === 'Customer Group') {
@@ -147,6 +149,7 @@
                 const customerGroupValue = customerGroupContainer.querySelector('.read-value[title="Portman Care"]');
                 
                 if (customerGroupValue) {
+                    console.log('[DEBUG] Portman Care customer group found');
                     warnings.push({
                         text: '⚠️ Manager Approval Required!',
                         bgColor: '#dc3545' // Red
@@ -154,6 +157,9 @@
                 }
             }
         }
+        
+        console.log('[DEBUG] Total warnings to display:', warnings.length);
+        warnings.forEach(w => console.log('[DEBUG] Warning:', w.text));
         
         // Apply highlighting if needed (only for Blocks)
         if (shouldHighlightPrepay) {
@@ -186,7 +192,7 @@
                         messageBox.textContent = warning.text;
                         
                         // Calculate position - stack them vertically if multiple
-                        const topPosition = index * 20; // 20px spacing between badges
+                        const topPosition = index * 22; // 22px spacing between badges
                         
                         // Apply all styles directly with !important to override site CSS
                         messageBox.setAttribute('style', `
