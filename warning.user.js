@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Support System Warning Badges
 // @namespace    https://github.com/danmansfield/
-// @version      2.5.1
+// @version      2.6.0
 // @description  Shows warning badges for Blocks and Happy Telecom top level entries, Portman Care customer group, and highlights prepay for Blocks
 // @author       Dan Mansfield
 // @match        https://support.bleckfield.com/*
@@ -128,7 +128,7 @@
                         });
                         shouldHighlightPrepay = true;
                     } 
-                    // Check for Happy Telecom
+                    // Check for Happy Telecom (any variant)
                     if (topLevelValue && topLevelValue.startsWith('Happy Telecom')) {
                         warnings.push({
                             text: '🔒 No email passwords without approval!',
@@ -139,17 +139,37 @@
             }
         }
         
-        // ALWAYS check for Portman Care customer group (independent of top level)
-        const customerGroupLabel = document.querySelector('label[for="input-field-for-customfield_222e374e546-f7ea-4fef-b528-39a4798f118f"]');
+        // Check for Portman Care customer group - FLEXIBLE APPROACH
+        // Find any label with text "Customer Group"
+        const allLabels = Array.from(document.querySelectorAll('label'));
+        const customerGroupLabel = allLabels.find(label => 
+            label.textContent.trim() === 'Customer Group'
+        );
         
-        if (customerGroupLabel && customerGroupLabel.textContent.trim() === 'Customer Group') {
-            const customerGroupContainer = customerGroupLabel.closest('.col-md-12');
+        if (customerGroupLabel) {
+            console.log('[DEBUG] Found Customer Group label');
+            const customerGroupContainer = customerGroupLabel.closest('.col-md-12') || 
+                                          customerGroupLabel.closest('.col-md-6') ||
+                                          customerGroupLabel.closest('[class*="col"]');
             
             if (customerGroupContainer) {
-                const customerGroupValue = customerGroupContainer.querySelector('.read-value[title="Portman Care"]');
+                // Look for Portman Care in the value divs
+                const valueDivs = customerGroupContainer.querySelectorAll('.read-value, .noedit-value');
+                let isPortmanCare = false;
                 
-                if (customerGroupValue) {
-                    console.log('[DEBUG] Portman Care customer group found');
+                valueDivs.forEach(div => {
+                    const titleAttr = div.getAttribute('title');
+                    const textContent = div.textContent.trim();
+                    
+                    // Check both title attribute and text content for "Portman Care"
+                    if ((titleAttr && titleAttr === 'Portman Care') || 
+                        (textContent && textContent === 'Portman Care')) {
+                        isPortmanCare = true;
+                        console.log('[DEBUG] Portman Care customer group found');
+                    }
+                });
+                
+                if (isPortmanCare) {
                     warnings.push({
                         text: '⚠️ Manager Approval Required!',
                         bgColor: '#dc3545' // Red
